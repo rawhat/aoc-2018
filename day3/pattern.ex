@@ -38,14 +38,22 @@ defmodule Pattern do
     p1_y_end = pattern1.top_offset + pattern1.height - 1
     p2_x_end = pattern2.left_offset + pattern2.width - 1
     p2_y_end = pattern2.top_offset + pattern2.height - 1
-    if (p1_x_end < pattern2.left_offset || pattern1.left_offset > p2_x_end) do
-      false
-    end
-    if (p1_y_end < pattern2.top_offset || pattern1.top_offset > p2_y_end) do
-      false
-    end
-    IO.puts "overlap"
-    true
+    # if (p1_x_end <= pattern2.left_offset || pattern1.left_offset >= p2_x_end) do
+    #   false
+    # end
+    # if (p1_y_end <= pattern2.top_offset || pattern1.top_offset >= p2_y_end) do
+    #   false
+    # end
+    # IO.inspect pattern1
+    # IO.inspect pattern2
+    # true
+    # IO.puts "comparing #{pattern1.left_offset} and #{p2_x_end}"
+    # IO.puts "comparing #{p1_x_end} and #{pattern2.left_offset}"
+    # IO.puts "comparing #{pattern1.top_offset} and #{p2_y_end}"
+    # IO.puts "comparing #{p1_y_end} and #{pattern2.left_offset}"
+    !((pattern1.left_offset > p2_x_end) || (p1_x_end < pattern2.left_offset) || (pattern1.top_offset > p2_y_end) || (p1_y_end < pattern2.left_offset))
+    # IO.puts "overlap? #{found}"
+    # found
   end
 
   def find_overlaps() do
@@ -61,13 +69,18 @@ defmodule Pattern do
   def find_non_overlapping() do
     all_patterns = parse_file()
     |> Enum.map(&input_to_pattern/1)
-    index = Enum.take_while(all_patterns, fn item ->
-      rest = List.delete_at(all_patterns, Enum.find_index(all_patterns, &(&1 == item)))
-      IO.puts "length: #{Enum.count(rest)}"
-      Enum.any?(rest, &(overlap?(&1, item)))
+    Enum.filter(all_patterns, fn item ->
+      item_pairs = get_pairs_from_pattern(item)
+      List.delete_at(all_patterns, Enum.find_index(all_patterns, &(&1 == item)))
+      |> Enum.map(&get_pairs_from_pattern/1)
+      |> Enum.all?(fn pairs ->
+        differences = Enum.drop_while(pairs, fn pair ->
+          Enum.member?(item_pairs, pair)
+        end)
+        |> Enum.count
+        if differences > 0, do: false, else: true
+      end)
     end)
-    |> Enum.count
-    IO.puts "index: #{index}, length: #{Enum.count(all_patterns)}"
-    Enum.at(all_patterns, index)
+    |> List.first
   end
 end
