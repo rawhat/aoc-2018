@@ -32,7 +32,7 @@ defmodule Guards do
   end
 
   def parse_and_order_file() do
-    found = File.read!("input.txt")
+    File.read!("input.txt")
     |> String.split("\n")
     |> Enum.filter(&(&1 != ""))
     |> Enum.map(&line_to_struct/1)
@@ -70,11 +70,31 @@ defmodule Guards do
       )
     end)
     |> Enum.sort_by(fn {_, m} -> m.sleep_time end)
+  end
+
+  def highest_minute_count() do
+    found = parse_and_order_file()
     |> List.last
     {_, map} = found
     map.minutes_asleep
     |> Enum.reduce(%{}, &(Map.update(&2, &1, 1, fn count -> count + 1 end)))
     |> Enum.sort_by(fn {_, m} -> m end)
     |> List.last
+  end
+
+  def get_highest_minute_frequency() do
+    parse_and_order_file()
+    |> Enum.reduce(%{count: -1}, fn {id, map}, highest ->
+      found = map.minutes_asleep
+      |> Enum.reduce(%{}, &(Map.update(&2, &1, 1, fn count -> count + 1 end)))
+      |> Enum.sort_by(fn {_, m} -> m end)
+      |> List.last
+      case found do
+        {minute, count} ->
+          if highest.count < count, do: %{id: id, count: count, minute: minute}, else: highest
+        _ ->
+          highest
+      end
+    end)
   end
 end
