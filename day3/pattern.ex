@@ -30,30 +30,7 @@ defmodule Pattern do
   def get_pairs_from_pattern(%Pattern{} = %{:left_offset => left_offset, :top_offset => top_offset, :width => width, :height => height}) do
     x_range = left_offset..(left_offset+width-1)
     y_range = top_offset..(top_offset+height-1)
-    Enum.flat_map(x_range, fn x -> Enum.map(y_range, fn y -> {x, y} end) end)
-  end
-
-  def overlap?(pattern1, pattern2) do
-    p1_x_end = pattern1.left_offset + pattern1.width - 1
-    p1_y_end = pattern1.top_offset + pattern1.height - 1
-    p2_x_end = pattern2.left_offset + pattern2.width - 1
-    p2_y_end = pattern2.top_offset + pattern2.height - 1
-    # if (p1_x_end <= pattern2.left_offset || pattern1.left_offset >= p2_x_end) do
-    #   false
-    # end
-    # if (p1_y_end <= pattern2.top_offset || pattern1.top_offset >= p2_y_end) do
-    #   false
-    # end
-    # IO.inspect pattern1
-    # IO.inspect pattern2
-    # true
-    # IO.puts "comparing #{pattern1.left_offset} and #{p2_x_end}"
-    # IO.puts "comparing #{p1_x_end} and #{pattern2.left_offset}"
-    # IO.puts "comparing #{pattern1.top_offset} and #{p2_y_end}"
-    # IO.puts "comparing #{p1_y_end} and #{pattern2.left_offset}"
-    !((pattern1.left_offset > p2_x_end) || (p1_x_end < pattern2.left_offset) || (pattern1.top_offset > p2_y_end) || (p1_y_end < pattern2.left_offset))
-    # IO.puts "overlap? #{found}"
-    # found
+    MapSet.new(Enum.flat_map(x_range, fn x -> Enum.map(y_range, fn y -> {x, y} end) end))
   end
 
   def find_overlaps() do
@@ -71,15 +48,14 @@ defmodule Pattern do
     |> Enum.map(&input_to_pattern/1)
     Enum.filter(all_patterns, fn item ->
       item_pairs = get_pairs_from_pattern(item)
-      List.delete_at(all_patterns, Enum.find_index(all_patterns, &(&1 == item)))
+      !(List.delete_at(all_patterns, Enum.find_index(all_patterns, &(&1 == item)))
       |> Enum.map(&get_pairs_from_pattern/1)
-      |> Enum.all?(fn pairs ->
-        differences = Enum.drop_while(pairs, fn pair ->
-          Enum.member?(item_pairs, pair)
-        end)
-        |> Enum.count
-        if differences > 0, do: false, else: true
-      end)
+      |> Enum.any?(fn candidate ->
+        dupes = candidate
+        |> MapSet.intersection(item_pairs)
+        |> MapSet.size
+        if dupes != 0, do: true, else: false
+      end))
     end)
     |> List.first
   end
